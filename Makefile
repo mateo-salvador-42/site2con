@@ -1,7 +1,7 @@
 .PHONY: setup install build start dev db-setup db-migrate db-push clean docker-up docker-down docker-logs caddy-install caddy-setup caddy-start caddy-stop caddy-reload caddy-logs setup-https
 
 DC ?= docker compose
-DOMAIN ?= $(shell grep -E '^NEXTAUTH_URL=' .env 2>/dev/null | sed 's|.*https\?://||' | tr -d '"')
+DOMAIN ?= $(shell grep -E '^NEXTAUTH_URL=' .env 2>/dev/null | sed -E 's|^NEXTAUTH_URL="?||' | sed -E 's|https?://||' | tr -d '"')
 
 # ── Installation système (Fedora/dnf) ─────────────────────────────────────────
 
