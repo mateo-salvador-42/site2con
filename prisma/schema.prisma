@@ -1,0 +1,44 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String          @id @default(cuid())
+  username     String          @unique
+  email        String          @unique
+  passwordHash String
+  createdAt    DateTime        @default(now())
+  sessions     SessionPlayer[]
+  hosted       GameSession[]
+}
+
+model GameSession {
+  id         String          @id @default(cuid())
+  code       String          @unique
+  gameType   String
+  status     String          @default("lobby")
+  hostId     String
+  host       User            @relation(fields: [hostId], references: [id])
+  settings   Json            @default("{}")
+  results    Json?
+  createdAt  DateTime        @default(now())
+  finishedAt DateTime?
+  players    SessionPlayer[]
+}
+
+model SessionPlayer {
+  id        String      @id @default(cuid())
+  sessionId String
+  session   GameSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User        @relation(fields: [userId], references: [id])
+  score     Int         @default(0)
+  joinedAt  DateTime    @default(now())
+
+  @@unique([sessionId, userId])
+}
