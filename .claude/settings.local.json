@@ -11,7 +11,8 @@
       "Bash(curl -s \"https://quizzapi.jomoreschi.fr/api/v2/quiz/categories\")",
       "Bash(curl -s \"https://quizzapi.jomoreschi.fr/api/v2/quiz?limit=20&category=geographie\")",
       "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(d['count'], 'questions'\\)\")",
-      "Bash(node -e \"const d=JSON.parse\\(require\\('fs'\\).readFileSync\\(0,'utf8'\\)\\); console.log\\(d.count, 'questions retournées'\\)\")"
+      "Bash(node -e \"const d=JSON.parse\\(require\\('fs'\\).readFileSync\\(0,'utf8'\\)\\); console.log\\(d.count, 'questions retournées'\\)\")",
+      "Bash(npm install *)"
     ]
   }
 }
