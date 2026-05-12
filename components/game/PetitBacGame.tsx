@@ -36,7 +36,6 @@ export function PetitBacGame({ session, gameState, onAction, mySocketId }: Props
   const [voteConfirmed, setVoteConfirmed] = useState(false)
   const [roundResult, setRoundResult] = useState<RoundResult | null>(null)
   const [scores, setScores] = useState(session.players)
-  const [stopInfo, setStopInfo] = useState<{ username: string; timeLeft: number } | null>(null)
   const socket = getSocket()
 
   const categories = (gameState.categories as string[]) || []
@@ -49,16 +48,13 @@ export function PetitBacGame({ session, gameState, onAction, mySocketId }: Props
     setInvalids(new Set())
     setVoteConfirmed(false)
     setRoundResult(null)
-    setStopInfo(null)
   }, [gameState.round])
 
   useEffect(() => {
-    socket.on('game:stop-triggered', (data: { username: string; timeLeft: number }) => setStopInfo(data))
     socket.on('game:vote-phase', (data: VotePhase) => { setVotePhase(data); setRoundResult(null) })
     socket.on('game:round-end', (data: RoundResult) => { setRoundResult(data); setScores(data.scores); setVotePhase(null) })
     socket.on('game:score-update', (s: { username: string; score: number }[]) => setScores(s))
     return () => {
-      socket.off('game:stop-triggered')
       socket.off('game:vote-phase')
       socket.off('game:round-end')
       socket.off('game:score-update')
@@ -150,67 +146,53 @@ export function PetitBacGame({ session, gameState, onAction, mySocketId }: Props
     )
   }
 
-  // Phase de vote
+  // Phase de vote — groupé par catégorie
   if (votePhase) {
-    const others = votePhase.submissions.filter(s => s.socketId !== mySocketId)
-    const mine = votePhase.submissions.find(s => s.socketId === mySocketId)
-
     return (
       <div className="flex-1 flex flex-col p-4 gap-4 max-w-2xl mx-auto w-full">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold">Validation — lettre <span className="text-indigo-400">{votePhase.letter}</span></h2>
+          <h2 className="text-lg font-bold">
+            Validation — lettre <span className="text-indigo-400">{votePhase.letter}</span>
+          </h2>
           {!voteConfirmed && <Timer seconds={votePhase.timeLeft} />}
         </div>
 
-        {/* Mes propres réponses */}
-        {mine && (
-          <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-3">
-            <div className="text-xs text-indigo-400 font-medium mb-2">Mes réponses</div>
-            <div className="flex flex-wrap gap-x-4 gap-y-1">
-              {votePhase.categories.map(cat => {
-                const ans = mine.answers[cat]?.trim()
-                return (
-                  <span key={cat} className="text-sm">
-                    <span className="text-gray-500">{cat} : </span>
-                    <span className={ans ? 'text-white font-medium' : 'text-gray-600 italic'}>{ans || '—'}</span>
-                  </span>
-                )
-              })}
-            </div>
-          </div>
-        )}
-
         <div className="flex-1 space-y-3 overflow-y-auto">
-          {others.map(player => (
-            <div key={player.socketId} className="bg-white/5 border border-white/10 rounded-xl p-4">
-              <div className="font-semibold mb-3 text-indigo-400">{player.username}</div>
-              {votePhase.categories.map(cat => {
-                const ans = player.answers[cat]?.trim()
-                const key = `${player.socketId}:${cat}`
-                const isInvalid = invalids.has(key)
-                return (
-                  <div key={cat} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
-                    <div>
-                      <span className="text-xs text-gray-500 block">{cat}</span>
-                      <span className={`font-medium ${!ans ? 'text-gray-600 italic' : isInvalid ? 'text-red-400 line-through' : 'text-white'}`}>
-                        {ans || '(vide)'}
-                      </span>
+          {votePhase.categories.map(cat => (
+            <div key={cat} className="bg-white/5 border border-white/10 rounded-xl p-4">
+              <div className="text-xs font-semibold text-indigo-400 uppercase tracking-wide mb-3">{cat}</div>
+              <div className="space-y-2">
+                {votePhase.submissions.map(player => {
+                  const ans = player.answers[cat]?.trim()
+                  const isMe = player.socketId === mySocketId
+                  const voteKey = `${player.socketId}:${cat}`
+                  const isInvalid = invalids.has(voteKey)
+                  return (
+                    <div key={player.socketId} className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-xs text-gray-500 shrink-0 w-20 truncate">{player.username}{isMe ? ' (moi)' : ''}</span>
+                        <span className={`font-medium truncate ${!ans ? 'text-gray-600 italic' : isInvalid ? 'text-red-400 line-through' : 'text-white'}`}>
+                          {ans || '(vide)'}
+                        </span>
+                      </div>
+                      {ans && !isMe && (
+                        voteConfirmed ? (
+                          isInvalid ? <span className="text-xs text-red-400 shrink-0">✗</span> : <span className="text-xs text-green-600 shrink-0">✓</span>
+                        ) : (
+                          <button
+                            onClick={() => toggleInvalid(player.socketId, cat)}
+                            className={`shrink-0 px-2 py-1 rounded-lg text-xs font-medium transition-colors ${isInvalid ? 'bg-red-500/30 text-red-400 border border-red-500/40' : 'bg-white/5 hover:bg-red-500/20 text-gray-500 hover:text-red-400'}`}
+                          >
+                            {isInvalid ? '✗ Invalide' : '✗'}
+                          </button>
+                        )
+                      )}
                     </div>
-                    {ans && !voteConfirmed && (
-                      <button onClick={() => toggleInvalid(player.socketId, cat)}
-                        className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${isInvalid ? 'bg-red-500/30 text-red-400 border border-red-500/40' : 'bg-white/5 hover:bg-red-500/20 text-gray-400 hover:text-red-400'}`}>
-                        {isInvalid ? '✗ Invalide' : 'Invalider'}
-                      </button>
-                    )}
-                    {ans && voteConfirmed && isInvalid && <span className="text-xs text-red-400">✗</span>}
-                  </div>
-                )
-              })}
+                  )
+                })}
+              </div>
             </div>
           ))}
-          {others.length === 0 && (
-            <div className="text-center text-gray-500 py-8">Tu es seul dans cette manche.</div>
-          )}
         </div>
 
         {!voteConfirmed ? (
@@ -234,12 +216,7 @@ export function PetitBacGame({ session, gameState, onAction, mySocketId }: Props
         <div className="text-4xl font-black text-indigo-400 tracking-widest">{gameState.letter as string}</div>
       </div>
 
-      {stopInfo ? (
-        <div className="bg-orange-500/20 border border-orange-500/30 rounded-xl p-3 text-center text-orange-300 text-sm">
-          ⚡ <span className="font-bold">{stopInfo.username}</span> a crié STOP !
-          <Timer seconds={stopInfo.timeLeft} />
-        </div>
-      ) : endMode === 'timer' && !submitted ? (
+      {endMode === 'timer' && !submitted ? (
         <Timer seconds={gameState.timeLeft as number} onEnd={submitAnswers} />
       ) : endMode === 'stop' && !submitted ? (
         <div className="text-center text-sm text-gray-400 py-1">Remplis les catégories, puis clique sur STOP pour déclencher le chrono !</div>
@@ -251,7 +228,12 @@ export function PetitBacGame({ session, gameState, onAction, mySocketId }: Props
             <label className="block text-sm text-gray-400 mb-1">{cat}</label>
             <input
               value={answers[cat] || ''}
-              onChange={e => setAnswers(a => ({ ...a, [cat]: e.target.value }))}
+              onChange={e => {
+                let val = e.target.value
+                const letter = gameState.letter as string
+                if (val.length > 0 && val[0].toUpperCase() !== letter) val = letter + val.slice(1)
+                setAnswers(a => ({ ...a, [cat]: val }))
+              }}
               disabled={submitted}
               placeholder={`${cat} commençant par ${gameState.letter as string}...`}
               className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 focus:outline-none focus:border-indigo-500 disabled:opacity-50 transition-colors"

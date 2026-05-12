@@ -12,12 +12,13 @@ const GAMES = [
 ]
 
 const CULTURE_G_CATEGORIES = ['Géographie', 'Histoire', 'Sciences', 'Sport', 'Cinéma & TV', 'Musique', 'Littérature', 'Jeux vidéo']
-const PETIT_BAC_PRESETS    = ['Prénom', 'Animal', 'Pays', 'Ville', 'Fruit/Légume', 'Métier', 'Objet', 'Couleur', 'Film/Série', 'Marque', 'Sport', 'Plante', 'Célébrité', 'Instrument', 'Boisson']
+const PETIT_BAC_PRESETS    = ['Prénom', 'Animal', 'Pays', 'Ville', 'Fruit/Légume', 'Métier', 'Objet', 'Film/Série', 'Marque', 'Sport', 'Célébrité', 'Personne Fictif']
 
 type RangeSetting       = { type: 'range';       label: string; key: string; min: number; max: number; step: number; default: number; unit: string }
 type ToggleSetting      = { type: 'toggle';      label: string; key: string; options: { value: string; label: string }[]; default: string }
 type MultiSelectSetting = { type: 'multiselect'; label: string; key: string; options: string[]; default: string[]; allowCustom?: boolean }
-type GameSetting = RangeSetting | ToggleSetting | MultiSelectSetting
+type LettersSetting     = { type: 'letters';     label: string; key: string; options: string[]; default: string[] }
+type GameSetting = RangeSetting | ToggleSetting | MultiSelectSetting | LettersSetting
 
 const GAME_SETTINGS: Record<string, GameSetting[]> = {
   'lyrics': [
@@ -35,6 +36,7 @@ const GAME_SETTINGS: Record<string, GameSetting[]> = {
       options: [{ value: 'timer', label: '⏱ Timer fixe' }, { value: 'stop', label: '✋ Premier STOP' }],
       default: 'timer' },
     { type: 'range',       label: 'Durée d\'écriture',  key: 'roundDuration', min: 30, max: 120, step: 15, default: 60, unit: 's' },
+    { type: 'letters',     label: 'Lettres jouables',   key: 'letters', options: 'ABCDEFGHIJKLMNOPRSTV'.split(''), default: 'ABCDEFGHIJKLMNOPRSTV'.split('') },
     { type: 'multiselect', label: 'Catégories',         key: 'categories', options: PETIT_BAC_PRESETS, default: PETIT_BAC_PRESETS.slice(0, 5), allowCustom: true },
   ],
 }
@@ -256,7 +258,46 @@ export default function HomePage() {
                       )
                     }
 
-                    // range
+                    if (s.type === 'letters') {
+                      const current = (settings[s.key] as string[]) ?? s.default
+                      const roundCount = (settings['roundCount'] as number) ?? 3
+                      const key = s.key
+                      const opts = s.options
+                      return (
+                        <div key={key}>
+                          <div className="flex justify-between text-sm mb-2">
+                            <span className="text-gray-400">{s.label}</span>
+                            <span className="text-gray-500 text-xs">{current.length} lettres</span>
+                          </div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {opts.map(letter => {
+                              const selected = current.includes(letter)
+                              const canDeselect = current.length > roundCount
+                              const base = 'w-8 h-8 rounded-lg text-sm font-bold transition-all border'
+                              const color = selected
+                                ? 'bg-indigo-500/20 border-indigo-500/50 text-indigo-300'
+                                : 'bg-white/5 border-white/10 text-gray-500 hover:bg-white/10'
+                              const dim = selected && !canDeselect ? ' opacity-40 cursor-not-allowed' : ''
+                              return (
+                                <button
+                                  key={letter}
+                                  onClick={() => {
+                                    if (!selected) setSettings((prev: Record<string, SettingValue>) => ({ ...prev, [key]: [...current, letter].sort() }))
+                                    else if (canDeselect) setSettings((prev: Record<string, SettingValue>) => ({ ...prev, [key]: current.filter((l: string) => l !== letter) }))
+                                  }}
+                                  className={base + ' ' + color + dim}
+                                >
+                                  {letter}
+                                </button>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )
+                    }
+
+                    // range — s est forcément RangeSetting ici
+                    if (s.type !== 'range') return null
                     const val = (settings[s.key] as number) ?? s.default
                     return (
                       <div key={s.key}>

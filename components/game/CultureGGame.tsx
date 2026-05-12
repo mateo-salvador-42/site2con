@@ -79,7 +79,7 @@ export function CultureGGame({ session, gameState, onAction }: Props) {
         <div className="text-sm text-gray-400">
           Question {(gameState.questionIndex as number) + 1} / {gameState.totalQuestions as number}
         </div>
-        {gameState.category && (
+        {!!gameState.category && (
           <span className="text-xs px-2 py-1 rounded-full bg-indigo-500/20 border border-indigo-500/30 text-indigo-300">
             {gameState.category as string}
           </span>

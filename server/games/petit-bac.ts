@@ -5,7 +5,6 @@ export const PETIT_BAC_PRESETS = ['Prénom', 'Animal', 'Pays', 'Ville', 'Fruit/L
 
 const LETTERS = 'ABCDEFGHIJKLMNOPRSTV'.split('')
 const VOTE_DURATION = 45_000
-const STOP_GRACE = 20_000
 
 export const petitBacHandler: GameHandler = {
   getInitialState(settings) {
@@ -13,7 +12,10 @@ export const petitBacHandler: GameHandler = {
     const categories = (settings.categories as string[])?.length
       ? (settings.categories as string[])
       : PETIT_BAC_PRESETS.slice(0, 5)
-    const letters = [...LETTERS].sort(() => Math.random() - 0.5).slice(0, roundCount)
+    const pool = (settings.letters as string[])?.length
+      ? (settings.letters as string[])
+      : LETTERS
+    const letters = [...pool].sort(() => Math.random() - 0.5).slice(0, roundCount)
     return {
       categories,
       letters,
@@ -49,19 +51,7 @@ export const petitBacHandler: GameHandler = {
       const endMode = session.gameState.endMode as string
       if (endMode === 'stop' && !session.gameState.stopTriggeredBy) {
         session.gameState.stopTriggeredBy = player.username
-
-        if (session.gameState.roundTimer) {
-          clearTimeout(session.gameState.roundTimer as unknown as ReturnType<typeof setTimeout>)
-          session.gameState.roundTimer = null
-        }
-
-        io.to(session.code).emit('game:stop-triggered', {
-          username: player.username,
-          timeLeft: STOP_GRACE / 1000,
-        })
-
-        const graceTimer = setTimeout(() => startVoting(session, io), STOP_GRACE)
-        session.gameState.roundTimer = graceTimer as unknown as number
+        startVoting(session, io)
       }
     }
 

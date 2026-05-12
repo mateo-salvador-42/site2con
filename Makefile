@@ -1,4 +1,6 @@
-.PHONY: setup install build start dev db-setup db-migrate db-push clean
+.PHONY: setup install build start dev db-setup db-migrate db-push clean docker-up docker-down docker-logs
+
+DC ?= docker compose
 
 # ── Installation système (Fedora/dnf) ─────────────────────────────────────────
 
@@ -59,6 +61,25 @@ db-migrate:
 
 db-push:
 	npm run db:push
+
+# ── Docker ────────────────────────────────────────────────────────────────────
+# docker-db  : lance uniquement PostgreSQL (pour faire tourner l'app en local)
+# docker-up  : lance tout (app + db) dans des conteneurs
+# docker-down: arrête et supprime les conteneurs
+
+docker-db:
+	$(DC) up -d db
+	@echo "✓ PostgreSQL prêt sur localhost:5432 — lance 'make dev' pour démarrer l'app"
+
+docker-up:
+	$(DC) up --build -d
+	@echo "✓ Lancé sur http://localhost:$${PORT:-3000}"
+
+docker-down:
+	$(DC) down
+
+docker-logs:
+	$(DC) logs -f app
 
 # ── Nettoyage ──────────────────────────────────────────────────────────────────
 

@@ -24,7 +24,7 @@ export function Timer({ seconds, onEnd }: { seconds: number; onEnd?: () => void 
 
   return (
     <div className="space-y-1">
-      <div className="flex items-center justify-between text-sm">
+      <div className="flex items-center justify-between text-sm w-full">
         <span className="text-gray-400">Temps</span>
         <span className={`font-mono font-bold ${left <= 5 ? 'text-red-400' : ''}`}>{left}s</span>
       </div>
