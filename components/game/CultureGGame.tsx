@@ -18,6 +18,7 @@ export function CultureGGame({ session, gameState, onAction }: Props) {
   const [result, setResult] = useState<{ correct: boolean } | null>(null)
   const [roundResult, setRoundResult] = useState<{ correctAnswer: number; correctOption: string; scores: { username: string; score: number }[] } | null>(null)
   const [scores, setScores] = useState(session.players)
+  const [loadingMsg, setLoadingMsg] = useState<string | null>(null)
   const socket = getSocket()
 
   useEffect(() => {
@@ -27,15 +28,29 @@ export function CultureGGame({ session, gameState, onAction }: Props) {
   }, [gameState.questionIndex])
 
   useEffect(() => {
+    socket.on('game:loading', ({ message }: { message: string }) => setLoadingMsg(message))
     socket.on('game:answer-result', (r: { correct: boolean }) => setResult(r))
     socket.on('game:round-end', (r: { correctAnswer: number; correctOption: string; scores: { username: string; score: number }[] }) => setRoundResult(r))
     socket.on('game:score-update', (s: { username: string; score: number }[]) => setScores(s))
     return () => {
+      socket.off('game:loading')
       socket.off('game:answer-result')
       socket.off('game:round-end')
       socket.off('game:score-update')
     }
   }, [socket])
+
+  if (loadingMsg && gameState.phase === 'starting') {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="text-4xl animate-spin">🧠</div>
+          <p className="text-gray-300 font-medium">{loadingMsg}</p>
+          <p className="text-sm text-gray-500">Connexion à Open Trivia DB...</p>
+        </div>
+      </div>
+    )
+  }
 
   if (gameState.phase === 'over') {
     const s = (gameState.scores as { username: string; score: number }[]) || scores
@@ -64,6 +79,11 @@ export function CultureGGame({ session, gameState, onAction }: Props) {
         <div className="text-sm text-gray-400">
           Question {(gameState.questionIndex as number) + 1} / {gameState.totalQuestions as number}
         </div>
+        {gameState.category && (
+          <span className="text-xs px-2 py-1 rounded-full bg-indigo-500/20 border border-indigo-500/30 text-indigo-300">
+            {gameState.category as string}
+          </span>
+        )}
       </div>
 
       {!roundResult && <Timer seconds={gameState.timeLeft as number} />}

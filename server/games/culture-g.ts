@@ -1,36 +1,44 @@
-import type { Server, Socket } from 'socket.io'
-import type { GameHandler, GameSession, GameAction, Player } from '../../types/game'
+import type { Server } from 'socket.io'
+import type { GameHandler, GameSession } from '../../types/game'
+import { fetchCultureGQuestions, type CultureGQuestion } from './culture-g-fetcher'
 
-const QUESTIONS = [
-  { id: 1, question: 'Quelle est la capitale de la France ?', options: ['Lyon', 'Paris', 'Marseille', 'Bordeaux'], answer: 1 },
-  { id: 2, question: 'Combien de côtés a un hexagone ?', options: ['5', '6', '7', '8'], answer: 1 },
-  { id: 3, question: 'Qui a peint la Joconde ?', options: ['Michel-Ange', 'Raphaël', 'Léonard de Vinci', 'Botticelli'], answer: 2 },
-  { id: 4, question: 'Quelle planète est la plus grande du système solaire ?', options: ['Saturne', 'Uranus', 'Neptune', 'Jupiter'], answer: 3 },
-  { id: 5, question: "En quelle année a eu lieu la Révolution française ?", options: ['1779', '1789', '1799', '1769'], answer: 1 },
-  { id: 6, question: 'Quel est l\'élément chimique dont le symbole est O ?', options: ['Or', 'Osmium', 'Oxygène', 'Ozone'], answer: 2 },
-  { id: 7, question: 'Combien de joueurs compte une équipe de football ?', options: ['9', '10', '11', '12'], answer: 2 },
-  { id: 8, question: 'Quel pays a la plus grande superficie au monde ?', options: ['Canada', 'Chine', 'USA', 'Russie'], answer: 3 },
-  { id: 9, question: 'Qui a écrit Les Misérables ?', options: ['Balzac', 'Zola', 'Victor Hugo', 'Flaubert'], answer: 2 },
-  { id: 10, question: 'Quelle est la monnaie du Japon ?', options: ['Yuan', 'Won', 'Yen', 'Ringgit'], answer: 2 },
-]
+export const CULTURE_G_CATEGORIES = ['Géographie', 'Histoire', 'Sciences', 'Sport', 'Cinéma & TV', 'Musique', 'Littérature', 'Jeux vidéo']
 
-const ROUND_DURATION = 15_000
 const BETWEEN_ROUNDS = 3_000
 
 export const cultureGHandler: GameHandler = {
   getInitialState(settings) {
-    const count = (settings.questionCount as number) || 10
-    const shuffled = [...QUESTIONS].sort(() => Math.random() - 0.5).slice(0, count)
     return {
-      questions: shuffled,
+      questions: [],
+      questionCount: (settings.questionCount as number) || 10,
+      roundDuration: ((settings.roundDuration as number) || 15) * 1000,
+      categories: (settings.categories as string[])?.length
+        ? (settings.categories as string[])
+        : CULTURE_G_CATEGORIES,
       currentQuestionIndex: 0,
       answers: {},
       roundTimer: null,
     }
   },
 
-  onStart(session, io) {
+  async onStart(session, io) {
+    const count = session.gameState.questionCount as number
+    const categories = session.gameState.categories as string[]
+
+    io.to(session.code).emit('game:loading', { message: 'Chargement des questions...' })
+
+    const questions = await fetchCultureGQuestions(count, categories)
+
+    if (questions.length === 0) {
+      io.to(session.code).emit('game:error', { message: 'Impossible de charger les questions. Réessaie.' })
+      session.status = 'lobby'
+      return
+    }
+
+    session.gameState.questions = questions
+    session.gameState.currentQuestionIndex = 0
     session.gameState.answers = {}
+
     sendQuestion(session, io, 0)
   },
 
@@ -40,7 +48,7 @@ export const cultureGHandler: GameHandler = {
       if (answers[player.socketId] !== undefined) return
 
       const chosen = action.payload as number
-      const questions = session.gameState.questions as typeof QUESTIONS
+      const questions = session.gameState.questions as CultureGQuestion[]
       const idx = session.gameState.currentQuestionIndex as number
       const isCorrect = chosen === questions[idx].answer
 
@@ -48,7 +56,7 @@ export const cultureGHandler: GameHandler = {
 
       if (isCorrect) {
         const elapsed = Date.now() - (session.gameState.roundStartedAt as number)
-        const bonus = Math.max(0, Math.floor((ROUND_DURATION - elapsed) / 1000))
+        const bonus = Math.max(0, Math.floor((session.gameState.roundDuration as number - elapsed) / 1000))
         player.score += 10 + bonus
       }
 
@@ -70,7 +78,7 @@ function getScores(session: GameSession) {
 }
 
 function sendQuestion(session: GameSession, io: Server, idx: number) {
-  const questions = session.gameState.questions as typeof QUESTIONS
+  const questions = session.gameState.questions as CultureGQuestion[]
   const q = questions[idx]
   session.gameState.roundStartedAt = Date.now()
   session.gameState.answers = {}
@@ -80,11 +88,12 @@ function sendQuestion(session: GameSession, io: Server, idx: number) {
     questionIndex: idx,
     totalQuestions: questions.length,
     question: q.question,
+    category: q.category,
     options: q.options,
-    timeLeft: ROUND_DURATION / 1000,
+    timeLeft: session.gameState.roundDuration as number / 1000,
   })
 
-  const timer = setTimeout(() => endRound(session, io), ROUND_DURATION)
+  const timer = setTimeout(() => endRound(session, io), session.gameState.roundDuration as number)
   session.gameState.roundTimer = timer as unknown as number
 }
 
@@ -94,7 +103,7 @@ function endRound(session: GameSession, io: Server) {
     session.gameState.roundTimer = null
   }
 
-  const questions = session.gameState.questions as typeof QUESTIONS
+  const questions = session.gameState.questions as CultureGQuestion[]
   const idx = session.gameState.currentQuestionIndex as number
 
   io.to(session.code).emit('game:round-end', {

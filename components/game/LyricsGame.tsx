@@ -19,6 +19,7 @@ export function LyricsGame({ session, gameState, onAction }: Props) {
   const [result, setResult] = useState<{ correct: boolean; correctAnswer?: string } | null>(null)
   const [roundResult, setRoundResult] = useState<{ correctAnswer: string; scores: { username: string; score: number }[] } | null>(null)
   const [scores, setScores] = useState(session.players)
+  const [loadingMsg, setLoadingMsg] = useState<string | null>(null)
   const socket = getSocket()
 
   useEffect(() => {
@@ -29,15 +30,29 @@ export function LyricsGame({ session, gameState, onAction }: Props) {
   }, [gameState.questionIndex])
 
   useEffect(() => {
+    socket.on('game:loading', ({ message }: { message: string }) => setLoadingMsg(message))
     socket.on('game:answer-result', (r: { correct: boolean; correctAnswer?: string }) => setResult(r))
     socket.on('game:round-end', (r: { correctAnswer: string; scores: { username: string; score: number }[] }) => setRoundResult(r))
     socket.on('game:score-update', (s: { username: string; score: number }[]) => setScores(s))
     return () => {
+      socket.off('game:loading')
       socket.off('game:answer-result')
       socket.off('game:round-end')
       socket.off('game:score-update')
     }
   }, [socket])
+
+  if (loadingMsg && gameState.phase === 'starting') {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="text-4xl animate-spin">🎵</div>
+          <p className="text-gray-300 font-medium">{loadingMsg}</p>
+          <p className="text-sm text-gray-500">Connexion à lyrics.ovh...</p>
+        </div>
+      </div>
+    )
+  }
 
   if (gameState.phase === 'over') {
     const s = (gameState.scores as { username: string; score: number }[]) || scores

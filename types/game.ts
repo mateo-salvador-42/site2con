@@ -29,7 +29,7 @@ export interface GameAction {
 }
 
 export interface GameHandler {
-  onStart(session: GameSession, io: Server): void
+  onStart(session: GameSession, io: Server): void | Promise<void>
   onAction(session: GameSession, player: Player, action: GameAction, io: Server, socket: Socket): void
   onPlayerLeave(session: GameSession, player: Player, io: Server): void
   getInitialState(settings: Record<string, unknown>): Record<string, unknown>

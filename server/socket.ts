@@ -101,6 +101,15 @@ export function setupSocketHandlers(io: Server) {
       io.to(code.toUpperCase()).emit('session:updated', getPublicSession(session))
     })
 
+    socket.on('session:get', ({ code }: { code: string }, cb: (res: { ok: boolean; session?: ReturnType<typeof getPublicSession>; error?: string }) => void) => {
+      const session = sessions.get(code.toUpperCase())
+      if (!session) return cb({ ok: false, error: 'Session introuvable' })
+      cb({ ok: true, session: getPublicSession(session) })
+      if (session.status === 'playing') {
+        socket.emit('game:state', session.gameState)
+      }
+    })
+
     socket.on('session:ready', (_, cb: (res: { ok: boolean }) => void) => {
       const code = socketToSession.get(socket.id)
       const session = code ? sessions.get(code) : undefined
@@ -122,10 +131,13 @@ export function setupSocketHandlers(io: Server) {
 
       session.status = 'playing'
       cb({ ok: true })
+      io.to(code!).emit('session:updated', getPublicSession(session))
       io.to(code!).emit('game:starting', { gameType: session.gameType })
 
       const handler = GAME_HANDLERS[session.gameType]
-      setTimeout(() => handler.onStart(session, io), 1000)
+      setTimeout(async () => {
+        await handler.onStart(session, io)
+      }, 1000)
     })
 
     socket.on('game:action', (action: { type: string; payload: unknown }) => {

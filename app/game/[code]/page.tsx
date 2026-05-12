@@ -32,7 +32,20 @@ export default function GamePage() {
 
   useEffect(() => {
     const socket = connectSocket()
-    setMySocketId(socket.id || '')
+
+    function fetchSession() {
+      const id = socket.id || ''
+      setMySocketId(id)
+      socket.emit('session:get', { code }, (res: { ok: boolean; session?: SessionData; error?: string }) => {
+        if (res.ok && res.session) setSession(res.session)
+      })
+    }
+
+    if (socket.connected) {
+      fetchSession()
+    } else {
+      socket.once('connect', fetchSession)
+    }
 
     socket.on('connect', () => setMySocketId(socket.id || ''))
     socket.on('session:updated', setSession)
@@ -48,7 +61,7 @@ export default function GamePage() {
       socket.off('game:state')
       socket.off('game:over')
     }
-  }, [notify])
+  }, [code, notify])
 
   function sendAction(type: string, payload: unknown) {
     getSocket().emit('game:action', { type, payload })
