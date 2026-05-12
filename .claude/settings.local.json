@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s \"https://the-trivia-api.com/v2/questions?limit=2&languages=fr\")",
+      "Bash(node -e \"const d=require\\('fs'\\).readFileSync\\('/dev/stdin','utf8'\\); const j=JSON.parse\\(d\\); j.forEach\\(q=>console.log\\(q.question.text\\)\\)\")",
+      "PowerShell($r = Invoke-RestMethod \"https://the-trivia-api.com/v2/questions?limit=2&languages=fr\"; $r | ForEach-Object { $_.question.text })",
+      "WebFetch(domain:quizzapi.jomoreschi.fr)",
+      "PowerShell($r = Invoke-WebRequest \"https://quizzapi.jomoreschi.fr/assets/index-DePf4hB8.js\" -ErrorAction SilentlyContinue; $r.Content.Substring\\(0, 3000\\))",
+      "Bash(curl -s \"https://quizzapi.jomoreschi.fr/assets/index-DePf4hB8.js\")",
+      "Bash(curl -s \"https://quizzapi.jomoreschi.fr/api/v2/quiz?limit=2\")",
+      "Bash(curl -s \"https://quizzapi.jomoreschi.fr/api/v2/quiz/categories\")",
+      "Bash(curl -s \"https://quizzapi.jomoreschi.fr/api/v2/quiz?limit=20&category=geographie\")",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(d['count'], 'questions'\\)\")",
+      "Bash(node -e \"const d=JSON.parse\\(require\\('fs'\\).readFileSync\\(0,'utf8'\\)\\); console.log\\(d.count, 'questions retournées'\\)\")"
+    ]
+  }
+}

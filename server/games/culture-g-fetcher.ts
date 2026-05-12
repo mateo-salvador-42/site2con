@@ -1,24 +1,41 @@
-const CATEGORY_MAP: Record<string, number> = {
-  'Géographie':  22,
-  'Histoire':    23,
-  'Sciences':    17,
-  'Sport':       21,
-  'Cinéma & TV': 11,
-  'Musique':     12,
-  'Littérature': 10,
-  'Jeux vidéo':  15,
+const CATEGORY_MAP: Record<string, string> = {
+  'Géographie':       'geographie',
+  'Histoire':         'histoire',
+  'Sciences':         'science',
+  'Sport':            'sport',
+  'TV & Cinéma':      'tv_cinema',
+  'Musique':          'musique',
+  'Arts & Littérature': 'art_litterature',
+  'Jeux vidéos':      'jeux_videos',
+  'Gastronomie':      'gastronomie',
+  'Culture générale': 'culture_generale',
+  'Actu & Politique': 'actu_politique',
 }
 
-type OpenTDBResult = {
-  category: string
+const SLUG_TO_DISPLAY: Record<string, string> = {
+  geographie:       'Géographie',
+  histoire:         'Histoire',
+  science:          'Sciences',
+  sport:            'Sport',
+  tv_cinema:        'TV & Cinéma',
+  musique:          'Musique',
+  art_litterature:  'Arts & Littérature',
+  jeux_videos:      'Jeux vidéos',
+  gastronomie:      'Gastronomie',
+  culture_generale: 'Culture générale',
+  actu_politique:   'Actu & Politique',
+}
+
+type QuizzAPIResult = {
   question: string
-  correct_answer: string
-  incorrect_answers: string[]
+  answer: string
+  category: string
+  badAnswers: string[]
 }
 
-type OpenTDBResponse = {
-  response_code: number
-  results: OpenTDBResult[]
+type QuizzAPIResponse = {
+  count: number
+  quizzes: QuizzAPIResult[]
 }
 
 export type CultureGQuestion = {
@@ -28,38 +45,24 @@ export type CultureGQuestion = {
   category: string
 }
 
-function decodeHtml(str: string): string {
-  return str
-    .replace(/&#(\d+);/g, (_, c) => String.fromCharCode(Number(c)))
-    .replace(/&#x([0-9a-fA-F]+);/g, (_, c) => String.fromCharCode(parseInt(c, 16)))
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&apos;/g, "'")
-    .replace(/&#039;/g, "'")
-}
-
-async function fetchFromOpenTDB(amount: number, categoryId?: number): Promise<CultureGQuestion[]> {
+async function fetchFromQuizzAPI(amount: number, category?: string): Promise<CultureGQuestion[]> {
   try {
-    let url = `https://opentdb.com/api.php?amount=${amount}&type=multiple`
-    if (categoryId) url += `&category=${categoryId}`
+    let url = `https://quizzapi.jomoreschi.fr/api/v2/quiz?limit=${Math.min(amount, 20)}`
+    if (category) url += `&category=${category}`
 
     const res = await fetch(url, { signal: AbortSignal.timeout(8000) })
     if (!res.ok) return []
 
-    const data = await res.json() as OpenTDBResponse
-    if (data.response_code !== 0) return []
+    const data = await res.json() as QuizzAPIResponse
+    if (!data.quizzes?.length) return []
 
-    return data.results.map(q => {
-      const shuffled = [...q.incorrect_answers, q.correct_answer].sort(() => Math.random() - 0.5)
-      const answerIndex = shuffled.indexOf(q.correct_answer)
-
+    return data.quizzes.map(q => {
+      const shuffled = [...q.badAnswers, q.answer].sort(() => Math.random() - 0.5)
       return {
-        question: decodeHtml(q.question),
-        options: shuffled.map(decodeHtml),
-        answer: answerIndex,
-        category: decodeHtml(q.category),
+        question: q.question,
+        options: shuffled,
+        answer: shuffled.indexOf(q.answer),
+        category: SLUG_TO_DISPLAY[q.category] ?? q.category,
       }
     })
   } catch {
@@ -68,15 +71,16 @@ async function fetchFromOpenTDB(amount: number, categoryId?: number): Promise<Cu
 }
 
 export async function fetchCultureGQuestions(count: number, categories: string[]): Promise<CultureGQuestion[]> {
-  const categoryIds = categories.map(c => CATEGORY_MAP[c]).filter(Boolean)
+  const categorySlugs = categories.map(c => CATEGORY_MAP[c]).filter(Boolean)
 
-  if (categoryIds.length === 0) {
-    return fetchFromOpenTDB(count)
+  if (categorySlugs.length === 0) {
+    return fetchFromQuizzAPI(count)
   }
 
-  const perCategory = Math.ceil(count / categoryIds.length)
-
-  const results = await Promise.all(categoryIds.map(id => fetchFromOpenTDB(perCategory, id)))
+  const perCategory = Math.ceil(count / categorySlugs.length)
+  const results = await Promise.all(
+    categorySlugs.map(slug => fetchFromQuizzAPI(perCategory, slug))
+  )
 
   return results.flat().sort(() => Math.random() - 0.5).slice(0, count)
 }

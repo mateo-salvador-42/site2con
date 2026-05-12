@@ -1,6 +1,6 @@
 import type { Server, Socket } from 'socket.io'
 
-export type GameType = 'lyrics' | 'culture-g' | 'petit-bac'
+export type GameType = 'lyrics' | 'culture-g' | 'petit-bac' | 'flags'
 export type SessionStatus = 'lobby' | 'playing' | 'finished'
 
 export interface Player {

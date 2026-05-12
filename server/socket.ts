@@ -3,11 +3,13 @@ import type { GameSession, GameType, Player, SessionMap } from '../types/game'
 import { lyricsHandler } from './games/lyrics'
 import { cultureGHandler } from './games/culture-g'
 import { petitBacHandler } from './games/petit-bac'
+import { flagsHandler } from './games/flags'
 
 const GAME_HANDLERS = {
   'lyrics': lyricsHandler,
   'culture-g': cultureGHandler,
   'petit-bac': petitBacHandler,
+  'flags': flagsHandler,
 }
 
 const sessions: SessionMap = new Map()

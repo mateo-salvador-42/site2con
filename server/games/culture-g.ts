@@ -2,7 +2,7 @@ import type { Server } from 'socket.io'
 import type { GameHandler, GameSession } from '../../types/game'
 import { fetchCultureGQuestions, type CultureGQuestion } from './culture-g-fetcher'
 
-export const CULTURE_G_CATEGORIES = ['Géographie', 'Histoire', 'Sciences', 'Sport', 'Cinéma & TV', 'Musique', 'Littérature', 'Jeux vidéo']
+export const CULTURE_G_CATEGORIES = ['Géographie', 'Histoire', 'Sciences', 'Sport', 'TV & Cinéma', 'Musique', 'Arts & Littérature', 'Jeux vidéos', 'Gastronomie', 'Culture générale', 'Actu & Politique']
 
 const BETWEEN_ROUNDS = 3_000
 

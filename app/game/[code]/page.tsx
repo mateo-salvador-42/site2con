@@ -5,6 +5,7 @@ import { connectSocket, getSocket } from '@/lib/socket-client'
 import { LyricsGame } from '@/components/game/LyricsGame'
 import { CultureGGame } from '@/components/game/CultureGGame'
 import { PetitBacGame } from '@/components/game/PetitBacGame'
+import { FlagsGame } from '@/components/game/FlagsGame'
 import { Lobby } from '@/components/game/Lobby'
 
 type SessionData = {
@@ -104,6 +105,7 @@ export default function GamePage() {
       {session.gameType === 'lyrics' && <LyricsGame {...gameProps} />}
       {session.gameType === 'culture-g' && <CultureGGame {...gameProps} />}
       {session.gameType === 'petit-bac' && <PetitBacGame {...gameProps} />}
+      {session.gameType === 'flags' && <FlagsGame {...gameProps} />}
     </div>
   )
 }
