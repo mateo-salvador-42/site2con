@@ -1,6 +1,7 @@
 import type { Server, Socket } from 'socket.io'
 import type { GameHandler, GameSession, GameAction, Player } from '../../types/game'
 import { fetchRandomQuestions, type LyricQuestion } from './lyrics-fetcher'
+import { saveGameResult } from '../save-stats'
 
 const BETWEEN_ROUNDS = 4_000
 
@@ -115,8 +116,10 @@ function endRound(session: GameSession, io: Server) {
   const next = idx + 1
   if (next >= questions.length) {
     setTimeout(() => {
+      const finalScores = getScores(session).sort((a, b) => b.score - a.score)
       session.status = 'finished'
-      io.to(session.code).emit('game:over', { scores: getScores(session).sort((a, b) => b.score - a.score) })
+      io.to(session.code).emit('game:over', { scores: finalScores })
+      saveGameResult(session.gameType, finalScores).catch(console.error)
     }, BETWEEN_ROUNDS)
     return
   }

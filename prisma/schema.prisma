@@ -15,6 +15,21 @@ model User {
   createdAt    DateTime        @default(now())
   sessions     SessionPlayer[]
   hosted       GameSession[]
+  stats        UserStat[]
+}
+
+model UserStat {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  gameType    String   // 'petit-bac' | 'culture-g' | 'lyrics' | 'flags' | 'total'
+  wins        Int      @default(0)
+  gamesPlayed Int      @default(0)
+  totalScore  Int      @default(0)
+  bestScore   Int      @default(0)
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, gameType])
 }
 
 model GameSession {

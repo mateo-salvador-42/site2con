@@ -12,7 +12,19 @@
       "Bash(curl -s \"https://quizzapi.jomoreschi.fr/api/v2/quiz?limit=20&category=geographie\")",
       "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(d['count'], 'questions'\\)\")",
       "Bash(node -e \"const d=JSON.parse\\(require\\('fs'\\).readFileSync\\(0,'utf8'\\)\\); console.log\\(d.count, 'questions retournées'\\)\")",
-      "Bash(npm install *)"
+      "Bash(npm install *)",
+      "Bash(sed -n '115,122p' /home/masalvad/project/site2con/server/games/lyrics.ts)",
+      "Bash(sed -n '54,62p' /home/masalvad/project/site2con/server/games/flags.ts)",
+      "Bash(sed -n '1,5p' /home/masalvad/project/site2con/server/games/culture-g.ts)",
+      "Bash(sed -n '1,5p' /home/masalvad/project/site2con/server/games/lyrics.ts)",
+      "Bash(sed -n '1,5p' /home/masalvad/project/site2con/server/games/flags.ts)",
+      "Bash(npx tsc *)",
+      "Bash(./node_modules/.bin/tsc --noEmit)",
+      "Bash(npm run *)",
+      "Bash(npm ci *)",
+      "Bash(node_modules/.bin/next build *)",
+      "Bash(node_modules/typescript/bin/tsc --noEmit)",
+      "Bash(node_modules/.bin/prisma generate *)"
     ]
   }
 }

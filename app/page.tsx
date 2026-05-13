@@ -132,7 +132,10 @@ export default function HomePage() {
   return (
     <main className="min-h-screen flex flex-col">
       <header className="flex items-center justify-between px-6 py-4 border-b border-white/10 gap-4">
-        <h1 className="text-2xl font-bold tracking-tight shrink-0">Site2Con 🎮</h1>
+        <div className="flex items-center gap-4 shrink-0">
+          <h1 className="text-2xl font-bold tracking-tight">Site2Con 🎮</h1>
+          <Link href="/leaderboard" className="text-sm text-gray-400 hover:text-white transition-colors">🏆 Classement</Link>
+        </div>
 
         <div className="flex items-center gap-3 ml-auto">
           <div className="flex flex-col items-end">

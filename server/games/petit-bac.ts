@@ -1,5 +1,6 @@
 import type { Server } from 'socket.io'
 import type { GameHandler, GameSession } from '../../types/game'
+import { saveGameResult } from '../save-stats'
 
 export const PETIT_BAC_PRESETS = ['Prénom', 'Animal', 'Pays', 'Ville', 'Fruit/Légume', 'Métier', 'Objet', 'Couleur', 'Film/Série', 'Marque', 'Sport', 'Plante', 'Célébrité', 'Instrument', 'Boisson']
 
@@ -202,8 +203,10 @@ function endRound(session: GameSession, io: Server) {
 
   if (idx + 1 >= roundCount) {
     setTimeout(() => {
+      const finalScores = getScores(session).sort((a, b) => b.score - a.score)
       session.status = 'finished'
-      io.to(session.code).emit('game:over', { scores: getScores(session).sort((a, b) => b.score - a.score) })
+      io.to(session.code).emit('game:over', { scores: finalScores })
+      saveGameResult(session.gameType, finalScores).catch(console.error)
     }, 6000)
   } else {
     setTimeout(() => startRound(session, io, idx + 1), 6000)

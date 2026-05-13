@@ -1,6 +1,7 @@
 import type { Server } from 'socket.io'
 import type { GameHandler, GameSession } from '../../types/game'
 import { fetchCultureGQuestions, type CultureGQuestion } from './culture-g-fetcher'
+import { saveGameResult } from '../save-stats'
 
 export const CULTURE_G_CATEGORIES = ['Géographie', 'Histoire', 'Sciences', 'Sport', 'TV & Cinéma', 'Musique', 'Arts & Littérature', 'Jeux vidéos', 'Gastronomie', 'Culture générale', 'Actu & Politique']
 
@@ -115,8 +116,10 @@ function endRound(session: GameSession, io: Server) {
   const next = idx + 1
   if (next >= questions.length) {
     setTimeout(() => {
+      const finalScores = getScores(session).sort((a, b) => b.score - a.score)
       session.status = 'finished'
-      io.to(session.code).emit('game:over', { scores: getScores(session).sort((a, b) => b.score - a.score) })
+      io.to(session.code).emit('game:over', { scores: finalScores })
+      saveGameResult(session.gameType, finalScores).catch(console.error)
     }, BETWEEN_ROUNDS)
     return
   }

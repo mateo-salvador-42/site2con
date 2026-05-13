@@ -1,6 +1,7 @@
 import type { Server } from 'socket.io'
 import type { GameHandler, GameSession } from '../../types/game'
 import { EASY_COUNTRIES, ALL_COUNTRIES, matchesCountry, type Country } from './flags-data'
+import { saveGameResult } from '../save-stats'
 
 const POINTS_BY_RANK = [10, 7, 5, 3, 2]
 const BETWEEN_ROUNDS = 4_000
@@ -54,8 +55,10 @@ function endRound(session: GameSession, io: Server) {
   const next = idx + 1
   if (next >= flags.length) {
     setTimeout(() => {
+      const finalScores = getScores(session).sort((a, b) => b.score - a.score)
       session.status = 'finished'
-      io.to(session.code).emit('game:over', { scores: getScores(session).sort((a, b) => b.score - a.score) })
+      io.to(session.code).emit('game:over', { scores: finalScores })
+      saveGameResult(session.gameType, finalScores).catch(console.error)
     }, BETWEEN_ROUNDS)
     return
   }
