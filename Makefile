@@ -1,4 +1,4 @@
-.PHONY: setup install build start dev db-setup db-migrate db-push clean docker-up docker-down docker-logs caddy-install caddy-setup caddy-start caddy-stop caddy-reload caddy-logs setup-https
+.PHONY: setup install build start dev db-setup db-migrate db-push kill clean docker-db docker-build docker-up docker-down docker-logs caddy-install caddy-setup caddy-start caddy-stop caddy-reload caddy-logs setup-https
 
 DC ?= docker compose
 DOMAIN ?= $(shell grep -E '^NEXTAUTH_URL=' .env 2>/dev/null | sed -E 's|^NEXTAUTH_URL="?||' | sed -E 's|https?://||' | tr -d '"')
@@ -64,13 +64,18 @@ db-push:
 	npm run db:push
 
 # ── Docker ────────────────────────────────────────────────────────────────────
-# docker-db  : lance uniquement PostgreSQL (pour faire tourner l'app en local)
-# docker-up  : lance tout (app + db) dans des conteneurs
-# docker-down: arrête et supprime les conteneurs
+# docker-db   : lance uniquement PostgreSQL (pour faire tourner l'app en local)
+# docker-build: build l'image de l'app sans la démarrer
+# docker-up   : build + démarre tout (app + db) en arrière-plan
+# docker-down : arrête et supprime les conteneurs
 
 docker-db:
 	$(DC) up -d db
 	@echo "✓ PostgreSQL prêt sur localhost:5432 — lance 'make dev' pour démarrer l'app"
+
+docker-build:
+	$(DC) build
+	@echo "✓ Image construite."
 
 docker-up:
 	$(DC) up --build -d
@@ -102,7 +107,7 @@ caddy-install:
 caddy-setup:
 	@if [ -z "$(DOMAIN)" ]; then echo "Erreur : NEXTAUTH_URL manquant dans .env"; exit 1; fi
 	@echo "→ Configuration de Caddy pour $(DOMAIN)..."
-	@echo "$(DOMAIN) {\n    reverse_proxy localhost:$${PORT:-3000}\n}" | sudo tee /etc/caddy/Caddyfile > /dev/null
+	@printf '$(DOMAIN) {\n    reverse_proxy localhost:%s\n}\n' "$${PORT:-3000}" | sudo tee /etc/caddy/Caddyfile > /dev/null
 	@echo "✓ Caddyfile écrit pour $(DOMAIN)."
 
 caddy-start:
@@ -125,6 +130,9 @@ setup-https: caddy-install caddy-setup caddy-start
 	@echo "  Ports requis ouverts : 80 (HTTP) et 443 (HTTPS)"
 
 # ── Nettoyage ──────────────────────────────────────────────────────────────────
+
+kill:
+	@pkill -f "tsx.*server" 2>/dev/null && echo "✓ Processus arrêté" || echo "Aucun processus à arrêter"
 
 clean:
 	rm -rf node_modules .next
